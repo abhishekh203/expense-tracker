@@ -1,0 +1,481 @@
+import 'package:flutter/material.dart';
+import '../../services/database_service.dart';
+import '../../models/category.dart';
+
+class EditCategoryScreen extends StatefulWidget {
+  final Category category;
+  
+  const EditCategoryScreen({
+    super.key,
+    required this.category,
+  });
+
+  @override
+  State<EditCategoryScreen> createState() => _EditCategoryScreenState();
+}
+
+class _EditCategoryScreenState extends State<EditCategoryScreen> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _nameController;
+  late final TextEditingController _nameNepaliController;
+  
+  late String _selectedType;
+  late String _selectedIcon;
+  late String _selectedColor;
+  bool _isLoading = false;
+
+  // Common icons for categories
+  final List<String> _categoryIcons = [
+    '🍽️', '🚗', '🛍️', '💡', '🏥', '📚', '🎬', '💰', '💼', '🏠',
+    '✈️', '⛽', '📱', '👕', '🎮', '🏋️', '🐕', '🎵', '📝', '💳',
+    '🍕', '☕', '🚌', '🚕', '🛒', '💊', '🔧', '🎯', '📊', '💻',
+  ];
+
+  // Common colors for categories
+  final List<String> _categoryColors = [
+    '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e',
+    '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1',
+    '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e', '#6b7280',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.category.name);
+    _nameNepaliController = TextEditingController(text: widget.category.nameNepali ?? '');
+    _selectedType = widget.category.type;
+    _selectedIcon = widget.category.icon ?? '📝';
+    _selectedColor = widget.category.color;
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _nameNepaliController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _updateCategory() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final updatedCategory = widget.category.copyWith(
+        name: _nameController.text.trim(),
+        nameNepali: _nameNepaliController.text.trim().isEmpty 
+            ? null 
+            : _nameNepaliController.text.trim(),
+        icon: _selectedIcon,
+        color: _selectedColor,
+        type: _selectedType,
+      );
+
+      await DatabaseService.updateCategory(updatedCategory);
+
+      if (mounted) {
+        Navigator.of(context).pop(true); // Return true to indicate success
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Category "${updatedCategory.name}" updated successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating category: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Scaffold(
+      backgroundColor: colorScheme.surface,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.close, color: colorScheme.onSurface),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'Edit Category',
+          style: TextStyle(
+            color: colorScheme.onSurface,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
+      ),
+      body: Form(
+        key: _formKey,
+        child: Column(
+          children: [
+            // Header with icon and color preview
+            Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  Container(
+                    height: 80,
+                    width: 80,
+                    decoration: BoxDecoration(
+                      color: Color(int.parse(_selectedColor.replaceAll('#', '0xFF'))).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Center(
+                      child: Text(
+                        _selectedIcon,
+                        style: const TextStyle(fontSize: 40),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    _nameController.text.isEmpty ? 'Category Name' : _nameController.text,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Color(int.parse(_selectedColor.replaceAll('#', '0xFF'))),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Form fields
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceVariant.withOpacity(0.3),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
+                ),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Category Name
+                      TextFormField(
+                        controller: _nameController,
+                        textCapitalization: TextCapitalization.words,
+                        decoration: InputDecoration(
+                          labelText: 'Category Name',
+                          hintText: 'e.g., Food & Dining',
+                          prefixIcon: Icon(Icons.label_outlined, color: colorScheme.primary),
+                          filled: true,
+                          fillColor: colorScheme.surface,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter a category name';
+                          }
+                          return null;
+                        },
+                        onChanged: (value) => setState(() {}),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Category Name (Nepali)
+                      TextFormField(
+                        controller: _nameNepaliController,
+                        decoration: InputDecoration(
+                          labelText: 'Category Name (Nepali) - Optional',
+                          hintText: 'e.g., खाना र भोजन',
+                          prefixIcon: Icon(Icons.translate, color: colorScheme.primary),
+                          filled: true,
+                          fillColor: colorScheme.surface,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Type Selection (only if not default category)
+                      if (!widget.category.isDefault) ...[
+                        Text(
+                          'Category Type',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: InkWell(
+                                onTap: () => setState(() => _selectedType = 'expense'),
+                                borderRadius: BorderRadius.circular(16),
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: _selectedType == 'expense' 
+                                        ? Colors.red.withOpacity(0.1)
+                                        : colorScheme.surface,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: _selectedType == 'expense' 
+                                          ? Colors.red
+                                          : colorScheme.outline.withOpacity(0.2),
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Icon(
+                                        Icons.remove_circle_outline,
+                                        color: _selectedType == 'expense' 
+                                            ? Colors.red
+                                            : colorScheme.onSurfaceVariant,
+                                        size: 32,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Expense',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          color: _selectedType == 'expense' 
+                                              ? Colors.red
+                                              : colorScheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: InkWell(
+                                onTap: () => setState(() => _selectedType = 'income'),
+                                borderRadius: BorderRadius.circular(16),
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: _selectedType == 'income' 
+                                        ? Colors.green.withOpacity(0.1)
+                                        : colorScheme.surface,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: _selectedType == 'income' 
+                                          ? Colors.green
+                                          : colorScheme.outline.withOpacity(0.2),
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Icon(
+                                        Icons.add_circle_outline,
+                                        color: _selectedType == 'income' 
+                                            ? Colors.green
+                                            : colorScheme.onSurfaceVariant,
+                                        size: 32,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Income',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          color: _selectedType == 'income' 
+                                              ? Colors.green
+                                              : colorScheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+
+                      // Icon Selection
+                      Text(
+                        'Choose Icon',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: colorScheme.surface,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: _categoryIcons.map((icon) {
+                            final isSelected = icon == _selectedIcon;
+                            return InkWell(
+                              onTap: () => setState(() => _selectedIcon = icon),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: isSelected 
+                                      ? colorScheme.primary.withOpacity(0.1)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isSelected 
+                                        ? colorScheme.primary
+                                        : Colors.transparent,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    icon,
+                                    style: const TextStyle(fontSize: 24),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Color Selection
+                      Text(
+                        'Choose Color',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: colorScheme.surface,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: _categoryColors.map((color) {
+                            final isSelected = color == _selectedColor;
+                            return InkWell(
+                              onTap: () => setState(() => _selectedColor = color),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: Color(int.parse(color.replaceAll('#', '0xFF'))),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isSelected 
+                                        ? colorScheme.onSurface
+                                        : Colors.transparent,
+                                    width: 3,
+                                  ),
+                                ),
+                                child: isSelected
+                                    ? const Icon(
+                                        Icons.check,
+                                        color: Colors.white,
+                                        size: 24,
+                                      )
+                                    : null,
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Update Button
+            Container(
+              padding: const EdgeInsets.all(24),
+              child: Container(
+                height: 56,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Color(int.parse(_selectedColor.replaceAll('#', '0xFF'))),
+                      Color(int.parse(_selectedColor.replaceAll('#', '0xFF'))).withOpacity(0.8),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(int.parse(_selectedColor.replaceAll('#', '0xFF'))).withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _updateCategory,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text(
+                          'Update Category',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
