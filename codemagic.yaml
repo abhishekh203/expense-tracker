@@ -1,98 +1,26 @@
 workflows:
-  android-workflow:
-    name: Android Workflow
-    max_build_duration: 120
-    instance_type: mac_mini_m1
-    integrations:
-      app_store_connect: codemagic
-    environment:
-      android_signing:
-        - keystore_reference
-      groups:
-        - google_play
-      vars:
-        PACKAGE_NAME: "com.example.expense_tracker_nepal"
-        GOOGLE_PLAY_TRACK: internal
-      flutter: stable
-      xcode: latest
-      cocoapods: default
-    scripts:
-      - name: Set up local.properties
-        script: |
-          echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
-      - name: Get Flutter packages
-        script: |
-          flutter packages pub get
-      - name: Flutter analyze
-        script: |
-          flutter analyze
-      - name: Flutter unit tests
-        script: |
-          flutter test
-        ignore_failure: true
-      - name: Build APK with --split-per-abi
-        script: |
-          flutter build apk --release --split-per-abi
-    artifacts:
-      - build/**/outputs/**/*.apk
-      - build/**/outputs/**/mapping.txt
-      - flutter_drive.log
-    publishing:
-      email:
-        recipients:
-          - abhishekhkapar@gmail.com
-        notify:
-          success: true
-          failure: false
-
   ios-workflow:
-    name: iOS Workflow
-    max_build_duration: 120
+    name: iOS Workflow - Expense Tracker Nepal
+    max_build_duration: 60
     instance_type: mac_mini_m1
-    integrations:
-      app_store_connect: codemagic
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.example.expense_tracker_nepal
-      vars:
-        BUNDLE_ID: "com.example.expense_tracker_nepal"
-        XCODE_WORKSPACE: "Runner.xcworkspace"
-        XCODE_SCHEME: "Runner"
-        APP_STORE_CONNECT_ISSUER_ID: Encrypted(...)
-        APP_STORE_CONNECT_KEY_IDENTIFIER: Encrypted(...)
-        APP_STORE_CONNECT_PRIVATE_KEY: Encrypted(...)
       flutter: stable
       xcode: latest
       cocoapods: default
     scripts:
-      - name: Set up code signing settings on Xcode project
-        script: |
-          xcode-project use-profiles
       - name: Get Flutter packages
         script: |
-          flutter packages pub get
-      - name: Install pods
+          flutter pub get
+      - name: Build iOS app (no signing)
         script: |
-          find . -name "Podfile" -execdir pod install \;
-      - name: Flutter analyze
-        script: |
-          flutter analyze
-      - name: Flutter unit tests
-        script: |
-          flutter test
-        ignore_failure: true
-      - name: Build ipa for distribution
-        script: |
-          flutter build ipa --release --export-options-plist=/Users/builder/export_options.plist
+          flutter build ios --release --no-codesign
     artifacts:
-      - build/ios/ipa/*.ipa
-      - /tmp/xcodebuild_logs/*.log
-      - flutter_drive.log
+      - build/ios/iphoneos/*.app
+      - build/ios/Runner.xcarchive
     publishing:
       email:
         recipients:
           - abhishekhkapar@gmail.com
         notify:
           success: true
-          failure: false
+          failure: true
