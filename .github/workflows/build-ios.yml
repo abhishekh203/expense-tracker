@@ -1,0 +1,38 @@
+name: iOS Simulator Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    name: 🎉 iOS Simulator Build
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          architecture: x64
+          
+      - run: flutter pub get
+
+      - run: pod repo update
+        working-directory: ios
+
+      - run: flutter build ios --simulator --release
+
+      - name: Create app bundle
+        run: |
+          cd build/ios/iphonesimulator
+          zip -qq -r -9 FlutterSimulatorApp.zip Runner.app
+
+      - name: Upload simulator app
+        uses: actions/upload-artifact@v4
+        with:
+          name: expense-tracker-ios-simulator
+          path: build/ios/iphonesimulator/FlutterSimulatorApp.zip
