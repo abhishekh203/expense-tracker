@@ -1,14 +1,16 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 class AppConstants {
   // App Information
-  static const String appName = 'Expense Tracker Nepal';
-  static const String appVersion = '1.0.0';
+  static String get appName => dotenv.env['APP_NAME'] ?? 'Expense Tracker Nepal';
+  static String get appVersion => dotenv.env['APP_VERSION'] ?? '1.0.0';
   
   // Supabase Configuration
-  static const String supabaseUrl = 'https://emhdutfpwzrjrtgahtrj.supabase.co';
-  static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtaGR1dGZwd3pyanJ0Z2FodHJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwMjc5NTIsImV4cCI6MjA2ODYwMzk1Mn0.9hRikXnCJ3RDt3iI9pACURTifS-M7V3_ddhXBVCaQLs';
+  static String get supabaseUrl => dotenv.env['SUPABASE_URL'] ?? '';
+  static String get supabaseAnonKey => dotenv.env['SUPABASE_ANON_KEY'] ?? '';
   
   // Gemini AI Configuration
-  static const String geminiApiKey = 'AIzaSyDm6jjqZPsLHbBk3J2VUM3NAmBjNB0Fm9s';
+  static String get geminiApiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
   
   // Currency
   static const String defaultCurrency = 'NPR';
